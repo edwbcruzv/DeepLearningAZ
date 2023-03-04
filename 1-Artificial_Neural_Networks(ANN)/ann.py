@@ -26,6 +26,8 @@ import pandas as pd
 
 dataset = pd.read_csv('Churn_Modelling.csv') # {buscar el dataset}
 
+cliente1=np.asarray([[0,0,600,1,40,3,6000,2,1,1,50000]])
+
 # Variable independiente:Mayuscula por ser una matriz.
 #   tomamos [Todas las filas ,desde la 4ta columna hasta la penultima]
 # el resto son datos irrelevantes
@@ -107,8 +109,12 @@ from sklearn.preprocessing import StandardScaler
 
 # Escalador para las variables independientes
 sc_X = StandardScaler()
+
+sc_client=StandardScaler()
 # escalando variables de training, se usa el fit_trasform
 X_train = sc_X.fit_transform(X_train)
+
+cliente1= sc_client.fit_transform(cliente1)
 # Se escala con el mismo escalador con las variables de testing con transform
 # para que la trasformacion lo haga en base al conjunto escalado de training
 X_test = sc_X.transform(X_test)
@@ -117,41 +123,75 @@ X_test = sc_X.transform(X_test)
 ## pero en otras ocaciones si se necesitaran escalar
 
 # =============================================================================
-# Construyendo la Red Neuronal Artificial
+# PARTE 2:  Construyendo la Red Neuronal Artificial
+# =============================================================================
+# =============================================================================
+# Importar keras y librerias adicionales
 # =============================================================================
 import keras 
-
+from keras.models import Sequential
+from keras.layers import Dense
 # =============================================================================
-# Evaluar el modelo y calcular predicciones finales
+# Inicializar la Red NEuronal Artificial
 # =============================================================================
-
-
+classifier=Sequential()
 # =============================================================================
-# Ajustar el modelo {modelo de clasificacion} al conjunto de entrenamiento
+# Añadir las capas de entrada y primera capa oculta
 # =============================================================================
-from sklearn import 
-
-classifier = 
-classifier.fit(X_train,y_train)
-
+classifier.add(Dense(units=6,# sinapsis(media)
+                     kernel_initializer='uniform', # funcion de distribucion
+                     activation='relu',# Funcion de activacion
+                     input_dim=11))
+# =============================================================================
+# Añadir la segunda capa oculta
+# =============================================================================
+classifier.add(Dense(units=6,# sinapsis(media)
+                     kernel_initializer='uniform', # funcion de distribucion
+                     activation='relu',# Funcion de activacion
+                     ))
+# =============================================================================
+# Añadir la ultima capa (capa de salida)
+# =============================================================================
+classifier.add(Dense(units=1,# sinapsis(media)
+                     kernel_initializer='uniform', # funcion de distribucion
+                     activation='sigmoid',# Funcion de activacion
+                     ))
+# =============================================================================
+# Compilar la Red Neuronal Artificial
+# =============================================================================
+classifier.compile(optimizer="adam", # optimizador
+                   loss='binary_crossentropy', # perdida
+                   metrics=['accuracy'] # metrica de precision
+                   )
+# =============================================================================
+# Ajustamos la Red Neuronal Artificial al conjunto de entrenamiento
+# =============================================================================
+classifier.fit(X_train,y_train,batch_size=10,epochs=100)
+# =============================================================================
+# PARTE 3:  Evaluar el modelo y calcular predicciones finales
+# =============================================================================
 # =============================================================================
 # Prediccion de los resultados con el conjunto de testing
 # =============================================================================
 
 y_pred=classifier.predict(X_test)
 
+y_pred=(y_pred>0.5)
 
+cliente1_pred=classifier.predict(cliente1)
+
+y_test=y_test.astype(bool)
 
 # =============================================================================
 # Elaborar una Matriz de confusion
 # 
-# |------------------------|-----------------------|
-# | Los que si compraron   | Los que no compraron  |
-# | predijo correctamente  | pero predice que si   |
-# |------------------------|-----------------------|
-# | Los que si compraron   | Los que no compraron  |
-# |  pero predice que no   | predijo correctamente |
-# |------------------------|-----------------------|
+# |----------------------|----------------------|
+# |     Verdaderos       |      Falsos          |
+# |     Positivo         |      Positivos       |
+# |----------------------|----------------------|
+# |     Falsos           |      Verdaderos      |
+# |     Negativos        |      Negativos       |
+# |----------------------|----------------------|
 # =============================================================================
 
 from sklearn.metrics import confusion_matrix
