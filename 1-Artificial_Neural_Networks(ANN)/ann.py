@@ -19,20 +19,13 @@ import pandas as pd
 
 # Estructura de los datos: Clientes de un banco.
 # Objetivo: analizar si despues de 6 meses un cliente se queda en el banco.
-# Filas :{numero de filas}
-# Columnas:
-#           |{...}| (vars independiente)
-#           |Exited| (var_dependiente)
 
 dataset = pd.read_csv('Churn_Modelling.csv') # {buscar el dataset}
 
-# Variable independiente:Mayuscula por ser una matriz.
-#   tomamos [Todas las filas ,desde la 4ta columna hasta la penultima]
-# el resto son datos irrelevantes
+# Variable independiente
 X = dataset.iloc[:,3:-1].values 
 
-# Variable dependiente:minuscula por ser un vector.
-#   tomamos [Todas las filas: Solo la ultima columna]
+# Variable dependiente
 y = dataset.iloc[:,[13]].values
 
 # Nota: convertir a matrices tanto a X como a y para evitar problemas
@@ -89,11 +82,7 @@ X=X[:,1:] # Se elimina la columna de Francia (multicolinealidad)
 # =============================================================================
 
 from sklearn.model_selection import train_test_split
-# la sig funcion devolvera varias variables con los valores de testing y training
-# Como parametros:Matriz independiente,
-#           matridependiente a predecir,
-#           tamaño del conjunto de testing en % (el resto se va a entrenamiento),
-#           numero random de division de datos (semilla random=cualquier numero).
+
 X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2,random_state=10)
 
 # =============================================================================
@@ -111,8 +100,6 @@ X_train = sc_X.fit_transform(X_train)
 # para que la trasformacion lo haga en base al conjunto escalado de training
 X_test = sc_X.transform(X_test)
 
-## En este caso no es necesario escalar las variables dependiente,
-## pero en otras ocaciones si se necesitaran escalar
 
 # =============================================================================
 # PARTE 2:  Construyendo la Red Neuronal Artificial
@@ -122,14 +109,15 @@ X_test = sc_X.transform(X_test)
 # =============================================================================
 import keras 
 from keras.models import Sequential # Inicializa los parametros de la RNA
-from keras.layers import Dense # Crear las Capas de la RNA y asignador de pesos
+from keras.layers import Dense # Crear las conexiones entre capas de la RNA y asignador de pesos
 from keras.layers import Dropout 
 # =============================================================================
 # Inicializar la Red Neuronal Artificial
 # =============================================================================
-classifier=Sequential() # inicializando una red neuronal
+# INICIALIZAR LA RED NEURONAL 
+classifier=Sequential()
 # =============================================================================
-# Añadir las capas de entrada con las primeras observaciones
+# INTRODUCIR LA PRIMERA OBSERVACION DEL DATASET A LA CAPA DE ENTRADA
 # (primera capa oculta)
 # No. de nodos sera el promedio del los numero de datos de entrada y 
 # el de salida, en este caso: Entrada 11, Salida 1. la media es 6
@@ -166,13 +154,15 @@ classifier.add(Dense(units=1,# sinapsis
 # Compilar la Red Neuronal Artificial
 # =============================================================================
 classifier.compile(optimizer="adam", # optimizador
-                   loss='binary_crossentropy', # perdida
+                   loss='binary_crossentropy', # funcion de perdidas, minimixando el error
                    metrics=['accuracy'] # metrica de precision
                    )
 # =============================================================================
 # Ajustamos la Red Neuronal Artificial al conjunto de entrenamiento
 # =============================================================================
-classifier.fit(X_train,y_train,batch_size=10,epochs=100)
+classifier.fit(X_train,y_train,
+               batch_size=10, # Numero de bloques a procesar antes de ajustar los pesos,(evita overfiting)
+               epochs=100) # Numero de iteraciones globales sobre el conjunto
 # =============================================================================
 # PARTE 3:  Evaluar el modelo y calcular predicciones finales
 # =============================================================================
@@ -182,7 +172,7 @@ classifier.fit(X_train,y_train,batch_size=10,epochs=100)
 
 y_pred=classifier.predict(X_test)
 
-y_pred=(y_pred>0.5)
+y_pred=(y_pred>0.5) # umbral
 
 y_test=y_test.astype(bool)
 
@@ -209,6 +199,7 @@ porcent=(c_m[0][0]+c_m[1][1])/c_m.sum()
 # =============================================================================
 # Nueva prediccion (Tarea)
 # =============================================================================
+
 
 new_predict=classifier.predict(
     sc_X.transform(
