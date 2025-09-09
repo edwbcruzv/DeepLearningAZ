@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Date: Wed Feb 22 20:15:46 2023
-
-@author: edwin
-"""
 # =============================================================================
 # Redes Neuronales Artificiales
 # =============================================================================
@@ -34,15 +28,7 @@ y = dataset.iloc[:,[13]].values
 # --------------------Tratamiendo de NAs--------------------
 # =============================================================================
 
-# from sklearn.impute import SimpleImputer
-# Los valores desconocidos de los valores independientes son los NA´s.
-# El valor que se va a sustituir que sera la media.
-# imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
-# Seleccionando las columnas las cuales estan los valores NA´s.
-# [Todas las filas,Columnas 1 y 2]
-# imputer = imputer.fit(X[:,1:3]) # ajustando valores
-# Sobreescribirnedo la matriz con la nueva trasformacion configurada.
-# X[:,1:3] = imputer.transform(X[:,1:3])
+# No aplica ya que el dataset esta completo
 
 
 # =============================================================================
@@ -86,7 +72,7 @@ from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2,random_state=10)
 
 # =============================================================================
-# --------------------Escalado de variables--------------------
+# --------------------Escalado de variables--(obligatorio cuando son RNs)
 # =============================================================================
 
 from sklearn.preprocessing import StandardScaler
@@ -110,7 +96,7 @@ X_test = sc_X.transform(X_test)
 import keras 
 from keras.models import Sequential # Inicializa los parametros de la RNA
 from keras.layers import Dense # Crear las conexiones entre capas de la RNA y asignador de pesos
-from keras.layers import Dropout 
+from keras.layers import Dropout # para evitar el overfitting
 # =============================================================================
 # Inicializar la Red Neuronal Artificial
 # =============================================================================
@@ -122,7 +108,7 @@ classifier=Sequential()
 # No. de nodos sera el promedio del los numero de datos de entrada y 
 # el de salida, en este caso: Entrada 11, Salida 1. la media es 6
 # =============================================================================
-classifier.add(Dense(units=6,# sinapsis
+classifier.add(Dense(units=6,# sinapsis (salida)
                      # Funcion de distribucion de los pesos de entrada
                      kernel_initializer='uniform',
                      # Funcion de activacion
@@ -133,22 +119,23 @@ classifier.add(Dense(units=6,# sinapsis
 # =============================================================================
 # Añadir la segunda capa oculta
 # =============================================================================
-classifier.add(Dense(units=6,# sinapsis
+classifier.add(Dense(units=6,# sinapsis (salida)
                      # Funcion de distribucion de los pesos de entrada
                      kernel_initializer='uniform',
                      # Funcion de activacion
                      activation='relu',
-                     # Dimension de entrada
+                     # Dimension de entrada no se define porque sabe cuantos recibe
                      ))
 # classifier.add(Dropout(p=0.1))
 # =============================================================================
 # Añadir la ultima capa (capa de salida)
 # =============================================================================
-classifier.add(Dense(units=1,# sinapsis
+classifier.add(Dense(units=1,# sinapsis (la salida de la red)
                      # Funcion de distribucion de los pesos de entrada
                      kernel_initializer='uniform',
                      # Funcion de activacion
                      activation='sigmoid',
+                     # Dimension de entrada no se define porque sabe cuantos recibe
                      ))
 # =============================================================================
 # Compilar la Red Neuronal Artificial
@@ -208,9 +195,10 @@ new_predict=classifier.predict(
 print(new_predict>0.5)
 
 # =============================================================================
-# Evaluar la RNA
+# Evaluar la RNA con K-Fold
 # =============================================================================
-from keras.wrappers.scikit_learn import KerasClassifier
+# from keras.wrappers.scikit_learn import KerasClassifier
+from scikeras.wrappers import KerasClassifier
 from sklearn.model_selection import cross_val_score
 
 def build_classifier():
@@ -246,19 +234,21 @@ def build_classifier():
                        )
     return classifier
 
-classifier2=KerasClassifier(build_fn=build_classifier,
-                            batch_size=10,
-                            epochs=100)
-
-accuracies = cross_val_score(estimator=classifier2,
+# similar al fit
+classifier2=KerasClassifier(build_fn=build_classifier, # obtenemos la red neuronal fabricada
+                            batch_size=10, #tamaños de bloque
+                            epochs=100) # epocas
+# trabajara dividiendo los bloques obteniendo las presisiones para obtener la media y varianza
+accuracies = cross_val_score(estimator=classifier2, # objeto para ajustar
                              X=X_train,
                              y=y_train,
-                             cv=10,
-                             n_jobs=-1)
+                             cv=10, # despliegues, la 10 e sla estandar
+                             verbose=1, # muestre el procesos
+                             n_jobs=-1) # para desplegar los nucleos del cpu, si es -1 se utilizara toda la potencia disponible
 
-mena=accuracies.mean()
+mean=accuracies.mean() # promedio 
 # mean=0.84799999
-variance=accuracies.std()
+variance=accuracies.std() # desviacion estandar
 # variance= 0.0127867070
 # =============================================================================
 # Mejora la RNA
@@ -268,10 +258,11 @@ variance=accuracies.std()
 # en las predicciones
 # Dichos parametros estan comentados en las capas ocultas de la RNA
 # =============================================================================
-# Ajustar la RNA
+# Ajustar la RNA (probar despues ya que tarda mucho y la libreria esta dando problemas)
 # =============================================================================
 from sklearn.model_selection import GridSearchCV
 
+# Mandaremos como argumento el optimizador
 def build_classifier2(optimizer):
     
     classifier=Sequential()
@@ -304,24 +295,29 @@ def build_classifier2(optimizer):
                        metrics=['accuracy'] # metrica de precision
                        )
     return classifier
+
 classifier3=KerasClassifier(build_fn=build_classifier2)
+
+# Hiperparametros que queremos optimizar
 parameters={
-    'batch_size':[25,32],
+    'batch_size':[25,32],# parametro a ajustar: el rango de valores que queremos que se pruebe y busque el optimo
     'epochs':[100,500],
     'optimizer':['adam','rmsprop']
     }
 
-# grid_search=GridSearchCV(estimator=classifier3,
-#                          param_grid=parameters,
-#                          scoring='accuracy',
-#                          cv=10)
-# grid_search=grid_search.fit(X_train,y_train)
+grid_search=GridSearchCV(estimator=classifier3,
+                         param_grid=parameters,
+                         scoring='accuracy',
+                         cv=10)
 
-# best_parameters=grid_search.best_params_
+grid_search=grid_search.fit(X_train,y_train)
+
+
+
 # Resultados en su momento
-# best_parameters={'batch_size':25,'epochs':500,'optimizer':'adam'}
-# best_accuracy=grid_search.best_score_
-# Resultados en su momento   
-# best_accuracy=0.8515
+best_parameters=grid_search.best_params_ # mejores parametros 
+# Ejemplo: best_parameters={'batch_size':25,'epochs':500,'optimizer':'adam'}
+best_accuracy=grid_search.best_score_ # la mejor presicion obtenida   
+# Ejemplo: best_accuracy=0.8515
 
 
